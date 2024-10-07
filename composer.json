@@ -1,0 +1,48 @@
+{
+  "name": "boost/craft-structure-plus",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "version": "dev-master",
+  "support": {
+    "email": "matthewdejager5@gmail.com",
+    "issues": "https://github.com/d3vm4tt/craft-strucutre-plus/issues?state=open",
+    "source": "https://github.com/d3vm4tt/craft-strucutre-plus",
+    "docs": "https://github.com/d3vm4tt/craft-strucutre-plus",
+    "rss": "https://github.com/d3vm4tt/craft-strucutre-plus/releases.atom"
+  },
+  "require": {
+    "php": ">=7.3",
+    "craftcms/cms": "^5.0.0"
+  },
+  "require-dev": {
+    "craftcms/ecs": "dev-main",
+    "craftcms/phpstan": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "boost\\structureplus\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "structure-plus",
+    "name": "Structure Plus",
+    "developer": "Boost",
+    "documentationUrl": "https://github.com/d3vm4tt/craft-strucutre-plus",
+    "class": "boost\\structureplus\\StructurePlus"
+  },
+  "scripts": {
+    "check-cs": "ecs check --ansi",
+    "fix-cs": "ecs check --ansi --fix",
+    "phpstan": "phpstan --memory-limit=1G"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}
