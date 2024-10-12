@@ -10,6 +10,7 @@ use craft\elements\Entry;
 use craft\events\DefineHtmlEvent;
 use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\DefineAttributeHtmlEvent;
+use craft\models\Section;
 use yii\base\Event;
 
 /**
@@ -99,13 +100,27 @@ class StructurePlus extends Plugin
                 __METHOD__
             );
 
+                $channels = array_filter(
+                    Craft::$app->entries->getAllSections(),
+                    fn($section) => $section->type === Section::TYPE_CHANNEL
+                );
+
+                // Create an associative array with handle as key and name as value
+                $channelOptions = [];
+
+                foreach ($channels as $channel) {
+                    $channelOptions[$channel->handle] = $channel->name;
+                }
+
+
+
                 $html = '';
 
                 /** @var Entry $entry */
                 $entry = $event->sender ?? null;
 
                 if ($entry !== null && $entry->uri !== null) {
-                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig');
+                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', ["options" => $channelOptions] );
                 }
 
                 $event->html = $html . $event->html;

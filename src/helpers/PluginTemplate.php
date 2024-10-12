@@ -18,7 +18,7 @@ class PluginTemplate
      *
      * @return string
      */
-    public static function renderPluginTemplate(
+    public static function  renderPluginTemplate(
         string $templatePath,
         array $params = [],
     ): string {

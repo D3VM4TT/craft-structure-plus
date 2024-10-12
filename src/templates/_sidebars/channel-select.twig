@@ -1,12 +1,6 @@
 {% import "_includes/forms" as forms %}
 
-{% set channelOptions = {
-    channel1: "Channel 1"|t("structure-plus"),
-    channel2: "Channel 2"|t("structure-plus"),
-    channel3: "Channel 3"|t("structure-plus"),
-    channel4: "Channel 4"|t("structure-plus"),
-    channel5: "Channel 5"|t("structure-plus"),
-} %}
+{% set channelOptions = options ?? null %}
 
 {% set value = "channel1" %}
 
