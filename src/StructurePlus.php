@@ -2,8 +2,15 @@
 
 namespace boost\structureplus;
 
+use boost\structureplus\helpers\PluginTemplate;
 use Craft;
+use craft\base\Element;
 use craft\base\Plugin;
+use craft\elements\Entry;
+use craft\events\DefineHtmlEvent;
+use craft\events\RegisterElementTableAttributesEvent;
+use craft\events\DefineAttributeHtmlEvent;
+use yii\base\Event;
 
 /**
  * Structure Plus plugin
@@ -15,6 +22,9 @@ use craft\base\Plugin;
  */
 class StructurePlus extends Plugin
 {
+
+    public const string HANDLE = 'structure-plus';
+
     public string $schemaVersion = '1.0.0';
 
     public static function config(): array
@@ -41,7 +51,66 @@ class StructurePlus extends Plugin
 
     private function attachEventHandlers(): void
     {
-        // Register event handlers here ...
-        // (see https://craftcms.com/docs/5.x/extend/events.html to get started)
+
+        // Adds a new nav item to the control panel entry index
+        Event::on(
+            Element::class,
+            Element::EVENT_REGISTER_SOURCES,
+            function($event) {
+                // Add a new source for Structure Plus
+                $event->sources[] = [
+                    'key' => 'structurePlus',
+                    'label' => 'Structure Plus',
+                    'criteria' => ['section' => 'pages'], // Adjust to your section
+                    'defaultSort' => ['postDate', 'desc'],
+                ];
+        });
+
+        Event::on(
+            Element::class,
+            Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
+            function(RegisterElementTableAttributesEvent $event) {
+                $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
+                $event->handled = true;
+        });
+
+
+        Event::on(
+            Entry::class,
+            Element::EVENT_DEFINE_ATTRIBUTE_HTML,
+            function(DefineAttributeHtmlEvent $e) {
+                if($e->attribute === 'customColumn'){
+                    $e->html = '
+                                <a href="https://craftcms.com" target="_blank">View All</a>
+                                <br>
+                                <a href="https://craftcms.com" target="_blank">+Add New</a>
+                                ';
+                }
+            }
+        );
+
+        Event::on(
+            Entry::class,
+            Element::EVENT_DEFINE_SIDEBAR_HTML,
+            function(DefineHtmlEvent $event) {
+
+            Craft::debug(
+                'Entry::EVENT_DEFINE_SIDEBAR_HTML',
+                __METHOD__
+            );
+
+                $html = '';
+
+                /** @var Entry $entry */
+                $entry = $event->sender ?? null;
+
+                if ($entry !== null && $entry->uri !== null) {
+                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig');
+                }
+
+                $event->html = $html . $event->html;
+            }
+        );
     }
+
 }
