@@ -45,7 +45,7 @@ class StructurePlus extends Plugin
 
         // Any code that creates an element query or loads Twig should be deferred until
         // after Craft is fully initialized, to avoid conflicts with other plugins/modules
-        Craft::$app->onInit(function() {
+        Craft::$app->onInit(function () {
             // ...
         });
     }
@@ -57,7 +57,7 @@ class StructurePlus extends Plugin
         Event::on(
             Element::class,
             Element::EVENT_REGISTER_SOURCES,
-            function($event) {
+            function ($event) {
                 // Add a new source for Structure Plus
                 $event->sources[] = [
                     'key' => 'structurePlus',
@@ -65,22 +65,22 @@ class StructurePlus extends Plugin
                     'criteria' => ['section' => 'pages'], // Adjust to your section
                     'defaultSort' => ['postDate', 'desc'],
                 ];
-        });
+            });
 
         Event::on(
             Element::class,
             Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
-            function(RegisterElementTableAttributesEvent $event) {
+            function (RegisterElementTableAttributesEvent $event) {
                 $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
                 $event->handled = true;
-        });
+            });
 
-
+        //  *** ADD HTML TO CUSTOM COLUMN ***
         Event::on(
             Entry::class,
             Element::EVENT_DEFINE_ATTRIBUTE_HTML,
-            function(DefineAttributeHtmlEvent $e) {
-                if($e->attribute === 'customColumn'){
+            function (DefineAttributeHtmlEvent $e) {
+                if ($e->attribute === 'customColumn') {
                     $e->html = '
                                 <a href="https://craftcms.com" target="_blank">View All</a>
                                 <br>
@@ -90,15 +90,23 @@ class StructurePlus extends Plugin
             }
         );
 
+        // *** ADD HTML TO SIDEBAR ***
         Event::on(
             Entry::class,
             Element::EVENT_DEFINE_SIDEBAR_HTML,
-            function(DefineHtmlEvent $event) {
+            function (DefineHtmlEvent $event) {
 
-            Craft::debug(
-                'Entry::EVENT_DEFINE_SIDEBAR_HTML',
-                __METHOD__
-            );
+                /** @var Entry $entry */
+                $entry = $event->sender ?? null;
+
+                if ($entry->section->type !== Section::TYPE_STRUCTURE) {
+                    return;
+                }
+
+                Craft::debug(
+                    'Entry::EVENT_DEFINE_SIDEBAR_HTML',
+                    __METHOD__
+                );
 
                 $channels = array_filter(
                     Craft::$app->entries->getAllSections(),
@@ -112,15 +120,10 @@ class StructurePlus extends Plugin
                     $channelOptions[$channel->handle] = $channel->name;
                 }
 
-
-
                 $html = '';
 
-                /** @var Entry $entry */
-                $entry = $event->sender ?? null;
-
                 if ($entry !== null && $entry->uri !== null) {
-                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', ["options" => $channelOptions] );
+                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', ["options" => $channelOptions]);
                 }
 
                 $event->html = $html . $event->html;
