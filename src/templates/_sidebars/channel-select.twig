@@ -1,11 +1,8 @@
 {% import "_includes/forms" as forms %}
 
 {% set channelOptions = options ?? null %}
-
 {% set value = "channel1" %}
-
 {% set disabled = false %}
-
 {% set errors = [] %}
 
 
@@ -16,8 +13,8 @@
             <div class="heading"><label id="channel-label" for="enabled">Link Channel</label></div>
             <div class="input ltr">
                 {{ forms.select({
-                    id: "channelSelect",
-                    name: "channelSelect",
+                    id: "channelId",
+                    name: "channelId",
                     options: channelOptions,
                     value: value,
                     class: "",

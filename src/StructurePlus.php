@@ -117,7 +117,7 @@ class StructurePlus extends Plugin
                 $channelOptions = [];
 
                 foreach ($channels as $channel) {
-                    $channelOptions[$channel->handle] = $channel->name;
+                    $channelOptions[$channel->id] = $channel->name;
                 }
 
                 $html = '';
@@ -127,6 +127,27 @@ class StructurePlus extends Plugin
                 }
 
                 $event->html = $html . $event->html;
+            }
+        );
+
+        Event::on(
+            Entry::class,
+            Element::EVENT_AFTER_SAVE,
+            function(Event $event) {
+                /** @var Entry $entry */
+                $entry = $event->sender;
+
+                // Only target Structure entries
+                if ($entry->section->type === 'structure') {
+
+                    $channelId = Craft::$app->request->getBodyParam('channelId');
+
+                    if ($channelId !== null) {
+
+                         // TODO: Update the entry's channelID field
+
+                    }
+                }
             }
         );
     }
