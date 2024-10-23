@@ -80,13 +80,37 @@ class StructurePlus extends Plugin
             Entry::class,
             Element::EVENT_DEFINE_ATTRIBUTE_HTML,
             function (DefineAttributeHtmlEvent $e) {
-                if ($e->attribute === 'customColumn') {
+
+                if ($e->attribute !== 'customColumn') {
+                    return;
+                }
+
+                /** @var Entry $entry */
+                $entry = $e->sender;
+
+                // Fetch the channelId related to this entry
+                $channelId = (new \craft\db\Query())
+                    ->select(['channelId'])
+                    ->from('{{%entries}}')
+                    ->where(['id' => $entry->id])
+                    ->scalar();
+
+                $relatedChannel = null;
+
+                if ($channelId !== null) {
+                    $relatedChannel = Craft::$app->entries->getSectionById($channelId);
+                }
+
+                $e->html = '';
+
+                if ($relatedChannel instanceof Section) {
                     $e->html = '
-                                <a href="https://craftcms.com" target="_blank">View All</a>
+                                <a href="/admin/entries/'. $relatedChannel->handle. '" target="_blank">View All</a>
                                 <br>
                                 <a href="https://craftcms.com" target="_blank">+Add New</a>
                                 ';
                 }
+
             }
         );
 
@@ -143,7 +167,7 @@ class StructurePlus extends Plugin
         Event::on(
             Entry::class,
             Element::EVENT_AFTER_SAVE,
-            function(Event $event) {
+            function (Event $event) {
                 /** @var Entry $entry */
                 $entry = $event->sender;
 
