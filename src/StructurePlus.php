@@ -99,6 +99,13 @@ class StructurePlus extends Plugin
                 /** @var Entry $entry */
                 $entry = $event->sender ?? null;
 
+                $channelId = (new \craft\db\Query())
+                    ->select(['channelId'])
+                    ->from('{{%entries}}')
+                    ->where(['id' => $entry->id])
+                    ->scalar();
+
+
                 if ($entry->section->type !== Section::TYPE_STRUCTURE) {
                     return;
                 }
@@ -123,7 +130,10 @@ class StructurePlus extends Plugin
                 $html = '';
 
                 if ($entry !== null && $entry->uri !== null) {
-                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', ["options" => $channelOptions]);
+                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
+                        "options" => $channelOptions,
+                        "selectedChannel" => $channelId,
+                    ]);
                 }
 
                 $event->html = $html . $event->html;
@@ -143,9 +153,13 @@ class StructurePlus extends Plugin
                     $channelId = Craft::$app->request->getBodyParam('channelId');
 
                     if ($channelId !== null) {
-
-                         // TODO: Update the entry's channelID field
-
+                        Craft::$app->db->createCommand()
+                            ->update(
+                                '{{%entries}}',
+                                ['channelId' => $channelId],
+                                ['id' => $entry->id]
+                            )
+                            ->execute();
                     }
                 }
             }
