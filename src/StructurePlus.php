@@ -80,7 +80,6 @@ class StructurePlus extends Plugin
             Entry::class,
             Element::EVENT_DEFINE_ATTRIBUTE_HTML,
             function (DefineAttributeHtmlEvent $e) {
-
                 if ($e->attribute !== 'customColumn') {
                     return;
                 }
@@ -104,15 +103,19 @@ class StructurePlus extends Plugin
                 $e->html = '';
 
                 if ($relatedChannel instanceof Section) {
-                    $e->html = '
-                                <a href="/admin/entries/'. $relatedChannel->handle. '" target="_blank">View All</a>
-                                <br>
-                                <a href="https://craftcms.com" target="_blank">+Add New</a>
-                                ';
-                }
+                    // Generate dynamic URLs
+                    $viewAllUrl = "/admin/entries/{$relatedChannel->handle}";
+                    $addNewUrl = "/admin/entries/{$relatedChannel->handle}/new";
 
+                    $e->html = '
+                <a href="' . $viewAllUrl . '" target="_blank">View All</a>
+                <br>
+                <a href="' . $addNewUrl . '?fresh=1" target="_blank">+Add New</a>
+            ';
+                }
             }
         );
+
 
         // *** ADD HTML TO SIDEBAR ***
         Event::on(
