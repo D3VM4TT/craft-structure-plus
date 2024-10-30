@@ -15,19 +15,8 @@ class Install extends Migration
      */
     public function safeUp(): bool
     {
-        if (!$this->db->columnExists('{{%entries}}', 'channelId')) {
-            $this->addColumn('{{%entries}}', 'channelId', $this->integer()->after('sectionId'));
-
-            // Add a foreign key relation to the sections table
-            $this->addForeignKey(
-                null,
-                '{{%entries}}',
-                'channelId',
-                '{{%sections}}',
-                'id',
-                'SET NULL',
-                'CASCADE'
-            );
+        if (!$this->db->columnExists('{{%entries}}', 'sp_channelId')) {
+            $this->addColumn('{{%entries}}', 'sp_channelId', $this->integer()->after('sectionId'));
         }
 
         return true;
@@ -38,9 +27,8 @@ class Install extends Migration
      */
     public function safeDown(): bool
     {
-        // Remove the 'channelId' column if it exists
-        if ($this->db->columnExists('{{%entries}}', 'channelId')) {
-            $this->dropColumn('{{%entries}}', 'channelId');
+        if ($this->db->columnExists('{{%entries}}', 'sp_channelId')) {
+            $this->dropColumn('{{%entries}}', 'sp_channelId');
         }
 
         return true;

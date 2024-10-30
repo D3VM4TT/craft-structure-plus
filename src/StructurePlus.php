@@ -30,6 +30,8 @@ class StructurePlus extends Plugin
 
     const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-'.self::HANDLE;
 
+    const DB_FIELD_CHANNEL_ID = 'sp_channelId';
+
     public string $schemaVersion = '1.0.0';
 
     public static function config(): array
@@ -72,6 +74,7 @@ class StructurePlus extends Plugin
                     ];
                 });
 
+            // *** ADD CUSTOM COLUMN TO ENTRY TABLE ***
             Event::on(
                 Element::class,
                 Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
@@ -94,7 +97,7 @@ class StructurePlus extends Plugin
 
                     // Fetch the channelId related to this entry
                     $channelId = (new \craft\db\Query())
-                        ->select(['channelId'])
+                        ->select([self::DB_FIELD_CHANNEL_ID])
                         ->from('{{%entries}}')
                         ->where(['id' => $entry->id])
                         ->scalar();
@@ -134,7 +137,7 @@ class StructurePlus extends Plugin
                     $entry = $event->sender ?? null;
 
                     $channelId = (new \craft\db\Query())
-                        ->select(['channelId'])
+                        ->select([self::DB_FIELD_CHANNEL_ID])
                         ->from('{{%entries}}')
                         ->where(['id' => $entry->id])
                         ->scalar();
@@ -154,8 +157,8 @@ class StructurePlus extends Plugin
                         fn($section) => $section->type === Section::TYPE_CHANNEL
                     );
 
-                    // Create an associative array with handle as key and name as value
-                    $channelOptions = [];
+
+                    $channelOptions = [0 => 'Select a channel...'];
 
                     foreach ($channels as $channel) {
                         $channelOptions[$channel->id] = $channel->name;
@@ -174,6 +177,7 @@ class StructurePlus extends Plugin
                 }
             );
 
+            // *** SAVE CHANNEL ID TO ENTRY ***
             Event::on(
                 Entry::class,
                 Element::EVENT_AFTER_SAVE,
@@ -190,7 +194,7 @@ class StructurePlus extends Plugin
                             Craft::$app->db->createCommand()
                                 ->update(
                                     '{{%entries}}',
-                                    ['channelId' => $channelId],
+                                    [self::DB_FIELD_CHANNEL_ID => $channelId],
                                     ['id' => $entry->id]
                                 )
                                 ->execute();
