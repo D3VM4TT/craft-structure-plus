@@ -10,7 +10,9 @@ use craft\elements\Entry;
 use craft\events\DefineHtmlEvent;
 use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\DefineAttributeHtmlEvent;
+use craft\events\RegisterUserPermissionsEvent;
 use craft\models\Section;
+use craft\services\UserPermissions;
 use yii\base\Event;
 
 /**
@@ -25,6 +27,8 @@ class StructurePlus extends Plugin
 {
 
     public const string HANDLE = 'structure-plus';
+
+    const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-'.self::HANDLE;
 
     public string $schemaVersion = '1.0.0';
 
@@ -53,61 +57,62 @@ class StructurePlus extends Plugin
     private function attachEventHandlers(): void
     {
 
-        // Adds a new nav item to the control panel entry index
-        Event::on(
-            Element::class,
-            Element::EVENT_REGISTER_SOURCES,
-            function ($event) {
-                // Add a new source for Structure Plus
-                $event->sources[] = [
-                    'key' => 'structurePlus',
-                    'label' => 'Structure Plus',
-                    'criteria' => ['section' => 'pages'], // Adjust to your section
-                    'defaultSort' => ['postDate', 'desc'],
-                ];
-            });
+        if (Craft::$app->getUser()->checkPermission(self::PERMISSION_ACCESS_PLUGIN)) {
+            // Adds a new nav item to the control panel entry index
+            Event::on(
+                Element::class,
+                Element::EVENT_REGISTER_SOURCES,
+                function ($event) {
+                    // Add a new source for Structure Plus
+                    $event->sources[] = [
+                        'key' => 'structurePlus',
+                        'label' => 'Structure Plus',
+                        'criteria' => ['section' => 'pages'], // Adjust to your section
+                        'defaultSort' => ['postDate', 'desc'],
+                    ];
+                });
 
-        Event::on(
-            Element::class,
-            Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
-            function (RegisterElementTableAttributesEvent $event) {
-                $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
-                $event->handled = true;
-            });
+            Event::on(
+                Element::class,
+                Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
+                function (RegisterElementTableAttributesEvent $event) {
+                    $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
+                    $event->handled = true;
+                });
 
-        //  *** ADD HTML TO CUSTOM COLUMN ***
-        Event::on(
-            Entry::class,
-            Element::EVENT_DEFINE_ATTRIBUTE_HTML,
-            function (DefineAttributeHtmlEvent $e) {
-                if ($e->attribute !== 'customColumn') {
-                    return;
-                }
+            //  *** ADD HTML TO CUSTOM COLUMN ***
+            Event::on(
+                Entry::class,
+                Element::EVENT_DEFINE_ATTRIBUTE_HTML,
+                function (DefineAttributeHtmlEvent $e) {
+                    if ($e->attribute !== 'customColumn') {
+                        return;
+                    }
 
-                /** @var Entry $entry */
-                $entry = $e->sender;
+                    /** @var Entry $entry */
+                    $entry = $e->sender;
 
-                // Fetch the channelId related to this entry
-                $channelId = (new \craft\db\Query())
-                    ->select(['channelId'])
-                    ->from('{{%entries}}')
-                    ->where(['id' => $entry->id])
-                    ->scalar();
+                    // Fetch the channelId related to this entry
+                    $channelId = (new \craft\db\Query())
+                        ->select(['channelId'])
+                        ->from('{{%entries}}')
+                        ->where(['id' => $entry->id])
+                        ->scalar();
 
-                $relatedChannel = null;
+                    $relatedChannel = null;
 
-                if ($channelId !== null) {
-                    $relatedChannel = Craft::$app->entries->getSectionById($channelId);
-                }
+                    if ($channelId !== null) {
+                        $relatedChannel = Craft::$app->entries->getSectionById($channelId);
+                    }
 
-                $e->html = '';
+                    $e->html = '';
 
-                if ($relatedChannel instanceof Section) {
-                    // Generate dynamic URLs
-                    $viewAllUrl = "/admin/entries/{$relatedChannel->handle}";
-                    $addNewUrl = "/admin/entries/{$relatedChannel->handle}/new";
+                    if ($relatedChannel instanceof Section) {
+                        // Generate dynamic URLs
+                        $viewAllUrl = "/admin/entries/{$relatedChannel->handle}";
+                        $addNewUrl = "/admin/entries/{$relatedChannel->handle}/new";
 
-                    $e->html = '
+                        $e->html = '
                     <div class="flex">
                         <a class="btn" href="' . $viewAllUrl . '" target="_blank">View All</a>
                         <br>
@@ -115,83 +120,101 @@ class StructurePlus extends Plugin
                     </div>
 
             ';
-                }
-            }
-        );
-
-
-        // *** ADD HTML TO SIDEBAR ***
-        Event::on(
-            Entry::class,
-            Element::EVENT_DEFINE_SIDEBAR_HTML,
-            function (DefineHtmlEvent $event) {
-
-                /** @var Entry $entry */
-                $entry = $event->sender ?? null;
-
-                $channelId = (new \craft\db\Query())
-                    ->select(['channelId'])
-                    ->from('{{%entries}}')
-                    ->where(['id' => $entry->id])
-                    ->scalar();
-
-
-                if ($entry->section->type !== Section::TYPE_STRUCTURE) {
-                    return;
-                }
-
-                Craft::debug(
-                    'Entry::EVENT_DEFINE_SIDEBAR_HTML',
-                    __METHOD__
-                );
-
-                $channels = array_filter(
-                    Craft::$app->entries->getAllSections(),
-                    fn($section) => $section->type === Section::TYPE_CHANNEL
-                );
-
-                // Create an associative array with handle as key and name as value
-                $channelOptions = [];
-
-                foreach ($channels as $channel) {
-                    $channelOptions[$channel->id] = $channel->name;
-                }
-
-                $html = '';
-
-                if ($entry !== null && $entry->uri !== null) {
-                    $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
-                        "options" => $channelOptions,
-                        "selectedChannel" => $channelId,
-                    ]);
-                }
-
-                $event->html = $html . $event->html;
-            }
-        );
-
-        Event::on(
-            Entry::class,
-            Element::EVENT_AFTER_SAVE,
-            function (Event $event) {
-                /** @var Entry $entry */
-                $entry = $event->sender;
-
-                // Only target Structure entries
-                if ($entry->section->type === 'structure') {
-
-                    $channelId = Craft::$app->request->getBodyParam('channelId');
-
-                    if ($channelId !== null) {
-                        Craft::$app->db->createCommand()
-                            ->update(
-                                '{{%entries}}',
-                                ['channelId' => $channelId],
-                                ['id' => $entry->id]
-                            )
-                            ->execute();
                     }
                 }
+            );
+
+            // *** ADD HTML TO SIDEBAR ***
+            Event::on(
+                Entry::class,
+                Element::EVENT_DEFINE_SIDEBAR_HTML,
+                function (DefineHtmlEvent $event) {
+
+                    /** @var Entry $entry */
+                    $entry = $event->sender ?? null;
+
+                    $channelId = (new \craft\db\Query())
+                        ->select(['channelId'])
+                        ->from('{{%entries}}')
+                        ->where(['id' => $entry->id])
+                        ->scalar();
+
+
+                    if ($entry->section->type !== Section::TYPE_STRUCTURE) {
+                        return;
+                    }
+
+                    Craft::debug(
+                        'Entry::EVENT_DEFINE_SIDEBAR_HTML',
+                        __METHOD__
+                    );
+
+                    $channels = array_filter(
+                        Craft::$app->entries->getAllSections(),
+                        fn($section) => $section->type === Section::TYPE_CHANNEL
+                    );
+
+                    // Create an associative array with handle as key and name as value
+                    $channelOptions = [];
+
+                    foreach ($channels as $channel) {
+                        $channelOptions[$channel->id] = $channel->name;
+                    }
+
+                    $html = '';
+
+                    if ($entry !== null && $entry->uri !== null) {
+                        $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
+                            "options" => $channelOptions,
+                            "selectedChannel" => $channelId,
+                        ]);
+                    }
+
+                    $event->html = $html . $event->html;
+                }
+            );
+
+            Event::on(
+                Entry::class,
+                Element::EVENT_AFTER_SAVE,
+                function (Event $event) {
+                    /** @var Entry $entry */
+                    $entry = $event->sender;
+
+                    // Only target Structure entries
+                    if ($entry->section->type === 'structure') {
+
+                        $channelId = Craft::$app->request->getBodyParam('channelId');
+
+                        if ($channelId !== null) {
+                            Craft::$app->db->createCommand()
+                                ->update(
+                                    '{{%entries}}',
+                                    ['channelId' => $channelId],
+                                    ['id' => $entry->id]
+                                )
+                                ->execute();
+                        }
+                    }
+                }
+            );
+        }
+
+        // PERMISSIONS
+        Event::on(
+            UserPermissions::class,
+            UserPermissions::EVENT_REGISTER_PERMISSIONS,
+            function (RegisterUserPermissionsEvent $event) {
+                $event->permissions[] = [
+                    'heading' => 'Structure Plus',
+                    'permissions' => [
+                        self::PERMISSION_ACCESS_PLUGIN => [
+                            'label' => \Craft::t(self::HANDLE,'Access plugin'),
+                            'nested' => [
+                            ]
+                        ],
+                    ],
+                ];
             }
         );
     }
