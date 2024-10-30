@@ -108,9 +108,12 @@ class StructurePlus extends Plugin
                     $addNewUrl = "/admin/entries/{$relatedChannel->handle}/new";
 
                     $e->html = '
-                <a href="' . $viewAllUrl . '" target="_blank">View All</a>
-                <br>
-                <a href="' . $addNewUrl . '?fresh=1" target="_blank">+Add New</a>
+                    <div class="flex">
+                        <a class="btn" href="' . $viewAllUrl . '" target="_blank">View All</a>
+                        <br>
+                        <a class="btn" href="' . $addNewUrl . '?fresh=1" target="_blank">+Add New</a>
+                    </div>
+
             ';
                 }
             }
