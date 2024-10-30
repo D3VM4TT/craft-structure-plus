@@ -111,18 +111,9 @@ class StructurePlus extends Plugin
                     $e->html = '';
 
                     if ($relatedChannel instanceof Section) {
-                        // Generate dynamic URLs
-                        $viewAllUrl = "/admin/entries/{$relatedChannel->handle}";
-                        $addNewUrl = "/admin/entries/{$relatedChannel->handle}/new";
-
-                        $e->html = '
-                    <div class="flex">
-                        <a class="btn" href="' . $viewAllUrl . '" target="_blank">View All</a>
-                        <br>
-                        <a class="btn" href="' . $addNewUrl . '?fresh=1" target="_blank">+Add New</a>
-                    </div>
-
-            ';
+                        $e->html = PluginTemplate::renderPluginTemplate('_sidebars/admin-buttons.twig', [
+                            "relatedChannel" => $relatedChannel->handle
+                        ]);
                     }
                 }
             );
