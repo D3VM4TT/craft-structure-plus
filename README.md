@@ -22,4 +22,5 @@ This plugin requires Craft CMS 5.0.0 or later, and PHP 7.3 or later.
     ]
 }
 ```
-4. Run `composer require craft-structure-plus` in your Craft project.
+4. Run `ddev composer require boost/craft-structure-plus:dev-master` in your Craft project.
+5. Install the plugin and test it out.
