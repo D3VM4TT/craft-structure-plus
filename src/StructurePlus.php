@@ -28,7 +28,7 @@ class StructurePlus extends Plugin
 
     public const string HANDLE = 'structure-plus';
 
-    const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-'.self::HANDLE;
+    const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-' . self::HANDLE;
 
     const DB_FIELD_CHANNEL_ID = 'sp_channelId';
 
@@ -173,23 +173,32 @@ class StructurePlus extends Plugin
                 Entry::class,
                 Element::EVENT_AFTER_SAVE,
                 function (Event $event) {
+
                     /** @var Entry $entry */
                     $entry = $event->sender;
 
+                    if (!$entry instanceof Entry) {
+                        return;
+                    }
+
+                    $section = $entry->section;
+
+                    if (!$section instanceof Section || $section->type !== Section::TYPE_STRUCTURE) {
+                        return;
+                    }
+
                     // Only target Structure entries
-                    if ($entry->section->type === 'structure') {
 
-                        $channelId = Craft::$app->request->getBodyParam('channelId');
+                    $channelId = Craft::$app->request->getBodyParam('channelId');
 
-                        if ($channelId !== null) {
-                            Craft::$app->db->createCommand()
-                                ->update(
-                                    '{{%entries}}',
-                                    [self::DB_FIELD_CHANNEL_ID => $channelId],
-                                    ['id' => $entry->id]
-                                )
-                                ->execute();
-                        }
+                    if ($channelId !== null) {
+                        Craft::$app->db->createCommand()
+                            ->update(
+                                '{{%entries}}',
+                                [self::DB_FIELD_CHANNEL_ID => $channelId],
+                                ['id' => $entry->id]
+                            )
+                            ->execute();
                     }
                 }
             );
@@ -204,7 +213,7 @@ class StructurePlus extends Plugin
                     'heading' => 'Structure Plus',
                     'permissions' => [
                         self::PERMISSION_ACCESS_PLUGIN => [
-                            'label' => \Craft::t(self::HANDLE,'Access plugin'),
+                            'label' => \Craft::t(self::HANDLE, 'Access plugin'),
                             'nested' => [
                             ]
                         ],
