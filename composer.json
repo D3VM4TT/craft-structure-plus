@@ -2,7 +2,7 @@
   "name": "boost/craft-structure-plus",
   "type": "craft-plugin",
   "license": "proprietary",
-  "version": "dev-master",
+  "version": "1.0.0",
   "support": {
     "email": "matthewdejager5@gmail.com",
     "issues": "https://github.com/d3vm4tt/craft-strucutre-plus/issues?state=open",
