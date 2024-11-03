@@ -26,7 +26,7 @@ use yii\base\Event;
 class StructurePlus extends Plugin
 {
 
-    public const string HANDLE = 'structure-plus';
+    public const HANDLE = 'structure-plus';
 
     const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-' . self::HANDLE;
 
