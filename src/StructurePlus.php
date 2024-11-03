@@ -11,6 +11,7 @@ use craft\events\DefineHtmlEvent;
 use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\DefineAttributeHtmlEvent;
 use craft\events\RegisterUserPermissionsEvent;
+use craft\events\SetElementTableAttributeHtmlEvent;
 use craft\models\Section;
 use craft\services\UserPermissions;
 use yii\base\Event;
@@ -86,8 +87,8 @@ class StructurePlus extends Plugin
             //  *** ADD HTML TO CUSTOM COLUMN ***
             Event::on(
                 Entry::class,
-                Element::EVENT_DEFINE_ATTRIBUTE_HTML,
-                function (DefineAttributeHtmlEvent $e) {
+                Element::EVENT_SET_TABLE_ATTRIBUTE_HTML,
+                function (SetElementTableAttributeHtmlEvent $e) {
                     if ($e->attribute !== 'customColumn') {
                         return;
                     }
@@ -105,7 +106,7 @@ class StructurePlus extends Plugin
                     $relatedChannel = null;
 
                     if ($channelId !== null) {
-                        $relatedChannel = Craft::$app->entries->getSectionById($channelId);
+                        $relatedChannel = Craft::$app->sections->getSectionById($channelId);
                     }
 
                     $e->html = '';
@@ -144,7 +145,7 @@ class StructurePlus extends Plugin
                     );
 
                     $channels = array_filter(
-                        Craft::$app->entries->getAllSections(),
+                        Craft::$app->sections->getAllSections(),
                         fn($section) => $section->type === Section::TYPE_CHANNEL
                     );
 
