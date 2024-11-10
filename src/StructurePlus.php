@@ -78,136 +78,136 @@ class StructurePlus extends Plugin
 //                });
 
             if (Craft::$app->getUser()->checkPermission(self::PERMISSION_SHOW_BUTTONS)) {
-            // *** ADD CUSTOM COLUMN TO ENTRY TABLE ***
-            Event::on(
-                Element::class,
-                Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
-                function (RegisterElementTableAttributesEvent $event) {
-                    $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
-                    $event->handled = true;
-                });
+                // *** ADD CUSTOM COLUMN TO ENTRY TABLE ***
+                Event::on(
+                    Element::class,
+                    Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
+                    function (RegisterElementTableAttributesEvent $event) {
+                        $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
+                        $event->handled = true;
+                    });
 
-            //  *** ADD BUTTONS ***
-            Event::on(
-                Entry::class,
-                Element::EVENT_SET_TABLE_ATTRIBUTE_HTML,
-                function (SetElementTableAttributeHtmlEvent $e) {
-                    if ($e->attribute !== 'customColumn') {
-                        return;
+                //  *** ADD BUTTONS ***
+                Event::on(
+                    Entry::class,
+                    Element::EVENT_SET_TABLE_ATTRIBUTE_HTML,
+                    function (SetElementTableAttributeHtmlEvent $e) {
+                        if ($e->attribute !== 'customColumn') {
+                            return;
+                        }
+
+                        /** @var Entry $entry */
+                        $entry = $e->sender;
+
+                        // Fetch the channelId related to this entry
+                        $channelId = (new \craft\db\Query())
+                            ->select([self::DB_FIELD_CHANNEL_ID])
+                            ->from('{{%entries}}')
+                            ->where(['id' => $entry->id])
+                            ->scalar();
+
+                        $relatedChannel = null;
+
+                        if ($channelId !== null) {
+                            $relatedChannel = Craft::$app->sections->getSectionById($channelId);
+                        }
+
+                        $e->html = '';
+
+                        if ($relatedChannel instanceof Section) {
+                            $e->html = PluginTemplate::renderPluginTemplate('_sidebars/admin-buttons.twig', [
+                                "relatedChannel" => $relatedChannel->handle
+                            ]);
+                        }
                     }
-
-                    /** @var Entry $entry */
-                    $entry = $e->sender;
-
-                    // Fetch the channelId related to this entry
-                    $channelId = (new \craft\db\Query())
-                        ->select([self::DB_FIELD_CHANNEL_ID])
-                        ->from('{{%entries}}')
-                        ->where(['id' => $entry->id])
-                        ->scalar();
-
-                    $relatedChannel = null;
-
-                    if ($channelId !== null) {
-                        $relatedChannel = Craft::$app->sections->getSectionById($channelId);
-                    }
-
-                    $e->html = '';
-
-                    if ($relatedChannel instanceof Section) {
-                        $e->html = PluginTemplate::renderPluginTemplate('_sidebars/admin-buttons.twig', [
-                            "relatedChannel" => $relatedChannel->handle
-                        ]);
-                    }
-                }
-            );
+                );
             }
 
-                if (Craft::$app->getUser()->checkPermission(self::PERMISSION_LINK_CHANNELS)) {
-            // *** ADD HTML TO SIDEBAR ***
-            Event::on(
-                Entry::class,
-                Element::EVENT_DEFINE_SIDEBAR_HTML,
-                function (DefineHtmlEvent $event) {
+            if (Craft::$app->getUser()->checkPermission(self::PERMISSION_LINK_CHANNELS)) {
+                // *** ADD HTML TO SIDEBAR ***
+                Event::on(
+                    Entry::class,
+                    Element::EVENT_DEFINE_SIDEBAR_HTML,
+                    function (DefineHtmlEvent $event) {
 
-                    /** @var Entry $entry */
-                    $entry = $event->sender ?? null;
+                        /** @var Entry $entry */
+                        $entry = $event->sender ?? null;
 
-                    $channelId = (new \craft\db\Query())
-                        ->select([self::DB_FIELD_CHANNEL_ID])
-                        ->from('{{%entries}}')
-                        ->where(['id' => $entry->id])
-                        ->scalar();
+                        $channelId = (new \craft\db\Query())
+                            ->select([self::DB_FIELD_CHANNEL_ID])
+                            ->from('{{%entries}}')
+                            ->where(['id' => $entry->id])
+                            ->scalar();
 
 
-                    if ($entry->section->type !== Section::TYPE_STRUCTURE) {
-                        return;
+                        if ($entry->section->type !== Section::TYPE_STRUCTURE) {
+                            return;
+                        }
+
+                        Craft::debug(
+                            'Entry::EVENT_DEFINE_SIDEBAR_HTML',
+                            __METHOD__
+                        );
+
+                        $channels = array_filter(
+                            Craft::$app->sections->getAllSections(),
+                            fn($section) => $section->type === Section::TYPE_CHANNEL
+                        );
+
+
+                        $channelOptions = [0 => 'Select a channel...'];
+
+                        foreach ($channels as $channel) {
+                            $channelOptions[$channel->id] = $channel->name;
+                        }
+
+                        $html = '';
+
+                        if ($entry !== null && $entry->uri !== null) {
+                            $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
+                                "options" => $channelOptions,
+                                "selectedChannel" => $channelId,
+                            ]);
+                        }
+
+                        $event->html = $html . $event->html;
                     }
+                );
 
-                    Craft::debug(
-                        'Entry::EVENT_DEFINE_SIDEBAR_HTML',
-                        __METHOD__
-                    );
+                // *** SAVE CHANNEL ID TO ENTRY ***
+                Event::on(
+                    Entry::class,
+                    Element::EVENT_AFTER_SAVE,
+                    function (Event $event) {
 
-                    $channels = array_filter(
-                        Craft::$app->sections->getAllSections(),
-                        fn($section) => $section->type === Section::TYPE_CHANNEL
-                    );
+                        /** @var Entry $entry */
+                        $entry = $event->sender;
 
+                        if (!$entry instanceof Entry) {
+                            return;
+                        }
 
-                    $channelOptions = [0 => 'Select a channel...'];
+                        $section = $entry->section;
 
-                    foreach ($channels as $channel) {
-                        $channelOptions[$channel->id] = $channel->name;
+                        if (!$section instanceof Section || $section->type !== Section::TYPE_STRUCTURE) {
+                            return;
+                        }
+
+                        // Only target Structure entries
+
+                        $channelId = Craft::$app->request->getBodyParam('channelId');
+
+                        if ($channelId !== null) {
+                            Craft::$app->db->createCommand()
+                                ->update(
+                                    '{{%entries}}',
+                                    [self::DB_FIELD_CHANNEL_ID => $channelId],
+                                    ['id' => $entry->id]
+                                )
+                                ->execute();
+                        }
                     }
-
-                    $html = '';
-
-                    if ($entry !== null && $entry->uri !== null) {
-                        $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
-                            "options" => $channelOptions,
-                            "selectedChannel" => $channelId,
-                        ]);
-                    }
-
-                    $event->html = $html . $event->html;
-                }
-            );
-
-            // *** SAVE CHANNEL ID TO ENTRY ***
-            Event::on(
-                Entry::class,
-                Element::EVENT_AFTER_SAVE,
-                function (Event $event) {
-
-                    /** @var Entry $entry */
-                    $entry = $event->sender;
-
-                    if (!$entry instanceof Entry) {
-                        return;
-                    }
-
-                    $section = $entry->section;
-
-                    if (!$section instanceof Section || $section->type !== Section::TYPE_STRUCTURE) {
-                        return;
-                    }
-
-                    // Only target Structure entries
-
-                    $channelId = Craft::$app->request->getBodyParam('channelId');
-
-                    if ($channelId !== null) {
-                        Craft::$app->db->createCommand()
-                            ->update(
-                                '{{%entries}}',
-                                [self::DB_FIELD_CHANNEL_ID => $channelId],
-                                ['id' => $entry->id]
-                            )
-                            ->execute();
-                    }
-                }
-            );
+                );
             }
         }
 
