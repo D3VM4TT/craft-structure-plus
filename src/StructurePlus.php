@@ -2,6 +2,7 @@
 
 namespace boost\structureplus;
 
+use boost\structureplus\behaviors\CustomColumnBehavior;
 use boost\structureplus\helpers\PluginTemplate;
 use Craft;
 use craft\base\Element;
@@ -119,6 +120,16 @@ class StructurePlus extends Plugin
                                 "relatedChannel" => $relatedChannel->handle
                             ]);
                         }
+                    }
+                );
+
+
+                // Attach the behavior to the `Entry` class
+                Event::on(
+                    Entry::class,
+                    Entry::EVENT_DEFINE_BEHAVIORS,
+                    function (Event $event) {
+                        $event->sender->attachBehavior('customColumnBehavior', CustomColumnBehavior::class);
                     }
                 );
             }
