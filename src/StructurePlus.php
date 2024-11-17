@@ -3,6 +3,7 @@
 namespace boost\structureplus;
 
 use boost\structureplus\behaviors\CustomColumnBehavior;
+use boost\structureplus\events\PermissionsEvent;
 use boost\structureplus\helpers\PluginTemplate;
 use Craft;
 use craft\base\Element;
@@ -29,10 +30,6 @@ class StructurePlus extends Plugin
 
     public const HANDLE = 'structure-plus';
 
-    const PERMISSION_ACCESS_PLUGIN = 'accessPlugin-' . self::HANDLE;
-    const PERMISSION_LINK_CHANNELS = self::HANDLE . ":link-channels";
-    const PERMISSION_SHOW_BUTTONS = self::HANDLE . ":show-buttons";
-
     const DB_FIELD_CHANNEL_ID = 'sp_channelId';
 
     public string $schemaVersion = '1.0.0';
@@ -50,19 +47,17 @@ class StructurePlus extends Plugin
     {
         parent::init();
 
-        $this->attachEventHandlers();
-
         // Any code that creates an element query or loads Twig should be deferred until
         // after Craft is fully initialized, to avoid conflicts with other plugins/modules
         Craft::$app->onInit(function () {
-            // ...
+            $this->attachEventHandlers();
         });
     }
 
     private function attachEventHandlers(): void
     {
 
-        if (Craft::$app->getUser()->checkPermission(self::PERMISSION_ACCESS_PLUGIN)) {
+        if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_ACCESS_PLUGIN)) {
             // Adds a new nav item to the control panel entry index
 //            Event::on(
 //                Element::class,
@@ -78,7 +73,7 @@ class StructurePlus extends Plugin
 //                });
 
 
-            if (Craft::$app->getUser()->checkPermission(self::PERMISSION_SHOW_BUTTONS)) {
+            if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_SHOW_BUTTONS)) {
                 // *** ADD CUSTOM COLUMN TO ENTRY TABLE ***
                 Event::on(
                     Element::class,
@@ -134,7 +129,7 @@ class StructurePlus extends Plugin
                 );
             }
 
-            if (Craft::$app->getUser()->checkPermission(self::PERMISSION_LINK_CHANNELS)) {
+            if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_LINK_CHANNELS)) {
                 // *** ADD HTML TO SIDEBAR ***
                 Event::on(
                     Entry::class,
@@ -222,29 +217,7 @@ class StructurePlus extends Plugin
             }
         }
 
-        // PERMISSIONS
-        Event::on(
-            UserPermissions::class,
-            UserPermissions::EVENT_REGISTER_PERMISSIONS,
-            function (RegisterUserPermissionsEvent $event) {
-                $event->permissions[] = [
-                    'heading' => 'Structure Plus',
-                    'permissions' => [
-                        self::PERMISSION_ACCESS_PLUGIN => [
-                            'label' => \Craft::t(self::HANDLE, 'Access Structure Plus'),
-                            'nested' => [
-                                self::PERMISSION_LINK_CHANNELS => [
-                                    'label' => \Craft::t(self::HANDLE, 'Link Channels')
-                                ],
-                                self::PERMISSION_SHOW_BUTTONS => [
-                                    'label' => \Craft::t(self::HANDLE, 'Show Buttons'),
-                                ],
-                            ]
-                        ],
-                    ],
-                ];
-            }
-        );
+        PermissionsEvent::register();
     }
 
 }
