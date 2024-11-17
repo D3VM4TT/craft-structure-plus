@@ -2,7 +2,7 @@
 
 namespace boost\structureplus;
 
-use boost\structureplus\behaviors\CustomColumnBehavior;
+use boost\structureplus\behaviors\StructurePlusBehavior;
 use boost\structureplus\events\PermissionsEvent;
 use boost\structureplus\helpers\PluginTemplate;
 use Craft;
@@ -58,28 +58,13 @@ class StructurePlus extends Plugin
     {
 
         if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_ACCESS_PLUGIN)) {
-            // Adds a new nav item to the control panel entry index
-//            Event::on(
-//                Element::class,
-//                Element::EVENT_REGISTER_SOURCES,
-//                function ($event) {
-//                    // Add a new source for Structure Plus
-//                    $event->sources[] = [
-//                        'key' => 'structurePlus',
-//                        'label' => 'Structure Plus',
-//                        'criteria' => ['section' => 'pages'], // Adjust to your section
-//                        'defaultSort' => ['postDate', 'desc'],
-//                    ];
-//                });
-
-
             if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_SHOW_BUTTONS)) {
                 // *** ADD CUSTOM COLUMN TO ENTRY TABLE ***
                 Event::on(
                     Element::class,
                     Element::EVENT_REGISTER_TABLE_ATTRIBUTES,
                     function (RegisterElementTableAttributesEvent $event) {
-                        $event->tableAttributes['customColumn'] = ['label' => 'Structure Plus'];
+                        $event->tableAttributes[StructurePlusBehavior::PROPERTY_NAME] = ['label' => 'Structure Plus'];
                         $event->handled = true;
                     });
 
@@ -88,7 +73,7 @@ class StructurePlus extends Plugin
                     Entry::class,
                     Element::EVENT_DEFINE_ATTRIBUTE_HTML,
                     function (DefineAttributeHtmlEvent $e) {
-                        if ($e->attribute !== 'customColumn') {
+                        if ($e->attribute !== StructurePlusBehavior::PROPERTY_NAME) {
                             return;
                         }
 
@@ -124,7 +109,7 @@ class StructurePlus extends Plugin
                     Entry::class,
                     Entry::EVENT_DEFINE_BEHAVIORS,
                     function (Event $event) {
-                        $event->sender->attachBehavior('customColumnBehavior', CustomColumnBehavior::class);
+                        $event->sender->attachBehavior('structurePlusBehavior', StructurePlusBehavior::class);
                     }
                 );
             }
