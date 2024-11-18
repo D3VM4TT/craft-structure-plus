@@ -10,6 +10,7 @@ Like many Craft CMS developers, we have roots in ExpressionEngine, where the Str
 -   **"View all" button**: Quickly navigate to a specific channel to view all entries within that channel. Great for reviewing and updating content at a glance.
 -   **"Add new" button**: Simplify content creation with a dedicated button for adding new entries directly within a chosen channel, speeding up the content creation workflow.
 -    **Allows reduced reliance on singles**: Utilise Entry Types for index pages such as news, resources or blogs. No longer will users be lost to where to find pages.
+-    **User group permissions**: Assign permission to users groups to define who has access to see or add Structure Plus to entries.
 
 ## Why choose Structure Plus?
 -   **Enhanced Navigation**: Authors can view and access all site content from a single interface, simplifying navigation and reducing time spent clicking through multiple sections.
