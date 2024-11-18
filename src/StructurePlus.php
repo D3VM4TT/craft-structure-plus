@@ -11,11 +11,8 @@ use craft\base\Plugin;
 use craft\elements\Entry;
 use craft\events\DefineHtmlEvent;
 use craft\events\RegisterElementTableAttributesEvent;
-use craft\events\DefineAttributeHtmlEvent;
-use craft\events\RegisterUserPermissionsEvent;
 use craft\events\SetElementTableAttributeHtmlEvent;
 use craft\models\Section;
-use craft\services\UserPermissions;
 use yii\base\Event;
 
 /**
