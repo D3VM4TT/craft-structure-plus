@@ -3,18 +3,17 @@
 namespace boost\structureplus;
 
 use boost\structureplus\behaviors\StructurePlusBehavior;
+use boost\structureplus\events\DefineBehaviorsEvent;
+use boost\structureplus\events\DefineSidebarHtmlEvent;
 use boost\structureplus\events\PermissionsEvent;
 use boost\structureplus\helpers\PluginTemplate;
 use Craft;
 use craft\base\Element;
 use craft\base\Plugin;
 use craft\elements\Entry;
-use craft\events\DefineHtmlEvent;
 use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\DefineAttributeHtmlEvent;
-use craft\events\RegisterUserPermissionsEvent;
 use craft\models\Section;
-use craft\services\UserPermissions;
 use yii\base\Event;
 
 /**
@@ -104,75 +103,12 @@ class StructurePlus extends Plugin
                 );
 
 
-                // Attach the behavior to the `Entry` class
-                Event::on(
-                    Entry::class,
-                    Entry::EVENT_DEFINE_BEHAVIORS,
-                    function (Event $event) {
-                        $event->sender->attachBehavior('structurePlusBehavior', StructurePlusBehavior::class);
-                    }
-                );
+                DefineBehaviorsEvent::register();
             }
 
             if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_LINK_CHANNELS)) {
-                // *** ADD HTML TO SIDEBAR ***
-                Event::on(
-                    Entry::class,
-                    Element::EVENT_DEFINE_SIDEBAR_HTML,
-                    function (DefineHtmlEvent $event) {
 
-                        /** @var Entry $entry */
-                        $entry = $event->sender ?? null;
-
-                        $channelId = (new \craft\db\Query())
-                            ->select([self::DB_FIELD_CHANNEL_ID])
-                            ->from('{{%entries}}')
-                            ->where(['id' => $entry->id])
-                            ->scalar();
-
-
-                        if ($entry->section->type !== Section::TYPE_STRUCTURE) {
-                            return;
-                        }
-
-                        Craft::debug(
-                            'Entry::EVENT_DEFINE_SIDEBAR_HTML',
-                            __METHOD__
-                        );
-
-                        $currentUser = Craft::$app->getUser()->getIdentity();
-                        if (!$currentUser) {
-                            return; // No logged-in user, skip rendering.
-                        }
-
-                        // Filter channels that the user has permission to view.
-                        $channels = array_filter(
-                            Craft::$app->entries->getAllSections(),
-                            function ($section) use ($currentUser) {
-                                return $section->type === Section::TYPE_CHANNEL
-                                    && Craft::$app->getUser()->checkPermission("viewEntries:{$section->uid}");
-                            }
-                        );
-
-
-                        $channelOptions = [0 => 'Select a channel...'];
-
-                        foreach ($channels as $channel) {
-                            $channelOptions[$channel->id] = $channel->name;
-                        }
-
-                        $html = '';
-
-                        if ($entry !== null && $entry->uri !== null) {
-                            $html .= PluginTemplate::renderPluginTemplate('_sidebars/channel-select.twig', [
-                                "options" => $channelOptions,
-                                "selectedChannel" => $channelId,
-                            ]);
-                        }
-
-                        $event->html = $html . $event->html;
-                    }
-                );
+                DefineSidebarHtmlEvent::register();
 
                 // *** SAVE CHANNEL ID TO ENTRY ***
                 Event::on(
