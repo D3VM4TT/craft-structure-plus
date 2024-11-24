@@ -138,9 +138,18 @@ class StructurePlus extends Plugin
                             __METHOD__
                         );
 
+                        $currentUser = Craft::$app->getUser()->getIdentity();
+                        if (!$currentUser) {
+                            return; // No logged-in user, skip rendering.
+                        }
+
+                        // Filter channels that the user has permission to view.
                         $channels = array_filter(
                             Craft::$app->sections->getAllSections(),
-                            fn($section) => $section->type === Section::TYPE_CHANNEL
+                            function ($section) use ($currentUser) {
+                                return $section->type === Section::TYPE_CHANNEL
+                                    && Craft::$app->getUser()->checkPermission("viewEntries:{$section->uid}");
+                            }
                         );
 
 
