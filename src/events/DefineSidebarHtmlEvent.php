@@ -32,7 +32,8 @@ class DefineSidebarHtmlEvent
                     ->scalar();
 
 
-                if ($entry->section->type !== Section::TYPE_STRUCTURE) {
+
+                if (!$entry->section || $entry->section->type !== Section::TYPE_STRUCTURE) {
                     return;
                 }
 

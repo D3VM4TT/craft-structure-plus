@@ -26,6 +26,9 @@ use yii\base\Event;
  */
 class StructurePlus extends Plugin
 {
+    
+    /* TODO: Add hidden class to sources via the code  */
+    /* TODO: Create a settins page where the user can show/hide certain sources  */
 
     public const HANDLE = 'structure-plus';
 
@@ -95,8 +98,23 @@ class StructurePlus extends Plugin
                         $e->html = '';
 
                         if ($relatedChannel instanceof Section) {
+                            $sourceDisabled = false;
+                            $sources = Craft::$app->elementSources->getSources(Entry::class, '', true);
+
+                            foreach ($sources as $source) {
+                                // Check if 'data' exists and is an array
+                                if (isset($source['data']) && is_array($source['data'])) {
+                                    // Check if 'handle' exists in 'data'
+                                    if (isset($source['data']['handle']) && $source['data']['handle'] === $relatedChannel->handle) {
+                                        $sourceDisabled = $source['disabled'];
+                                        break; // Exit loop as we've found the desired source
+                                    }
+                                }
+                            }
+
                             $e->html = PluginTemplate::renderPluginTemplate('_sidebars/admin-buttons.twig', [
-                                "relatedChannel" => $relatedChannel->handle
+                                "relatedChannel" => $relatedChannel->handle,
+                                "sourceDisabled" => $sourceDisabled,
                             ]);
                         }
                     }

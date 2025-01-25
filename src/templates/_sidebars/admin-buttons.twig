@@ -1,6 +1,7 @@
 {% set relatedChannel =  relatedChannel ?? null %}
+{% set sourceDisabled = sourceDisabled ?? false %}
 
 <div class="flex flex-nowrap">
-    <a class="btn" href="/admin/entries/{{ relatedChannel }}">View all</a>
-    <a class="btn" href="/admin/entries/{{ relatedChannel }}/new?fresh=1" target="_blank">Add new +</a>
+    <a class="btn {% if sourceDisabled %} disabled {% endif %}"  href="/admin/entries/{{ relatedChannel }}">View all</a>
+    <a class="btn {% if sourceDisabled %} disabled {% endif %}"  href="/admin/entries/{{ relatedChannel }}/new?fresh=1" target="_blank">Add new +</a>
 </div>
