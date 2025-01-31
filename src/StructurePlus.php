@@ -2,18 +2,23 @@
 
 namespace boost\structureplus;
 
+use boost\structureplus\assets\StructurePlusAsset;
 use boost\structureplus\behaviors\StructurePlusBehavior;
 use boost\structureplus\events\DefineBehaviorsEvent;
 use boost\structureplus\events\DefineSidebarHtmlEvent;
 use boost\structureplus\events\PermissionsEvent;
 use boost\structureplus\helpers\PluginTemplate;
+use boost\structureplus\services\StructurePlusEntriesService;
 use Craft;
 use craft\base\Element;
 use craft\base\Plugin;
+use craft\db\Query;
 use craft\elements\Entry;
+use craft\events\RegisterElementSourcesEvent;
 use craft\events\RegisterElementTableAttributesEvent;
 use craft\events\DefineAttributeHtmlEvent;
 use craft\models\Section;
+use craft\web\View;
 use yii\base\Event;
 
 /**
@@ -54,10 +59,44 @@ class StructurePlus extends Plugin
         Craft::$app->onInit(function () {
             $this->attachEventHandlers();
         });
+
+        // REGISTER SERVICES
+        $this->setComponents([
+            'structurePlusEntry' => StructurePlusEntriesService::class,
+        ]);
     }
 
     private function attachEventHandlers(): void
     {
+        /** @var StructurePlusEntriesService $structurePlusEntries */
+        $structurePlusEntries = self::getInstance()->structurePlusEntry;
+
+        /* TODO: BUG!!! When a channel is related to a entry, it is hidden as expected,
+                but when it is no longer related, it is still hidden  */
+
+            // Fetch a unique list of channel IDs linked via sp_channelId
+            $hiddenChannelIds = $structurePlusEntries->getAllRelatedChannels();
+
+            // Fetch section handles for the channels
+            $hiddenSectionHandles = [];
+            foreach ($hiddenChannelIds as $channelId) {
+                if ($channelId) {
+                    $section = Craft::$app->entries->getSectionById($channelId);
+                    if ($section) {
+                        $hiddenSectionHandles[] = $section->handle;
+                    }
+                }
+            }
+
+        // Pass hidden section handles to JavaScript
+        Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (Event $event) use ($hiddenSectionHandles) {
+            if (Craft::$app->getRequest()->isCpRequest) {
+                $jsonHiddenSections = json_encode($hiddenSectionHandles);
+                Craft::$app->getView()->registerJs("window.hiddenSections = $jsonHiddenSections;", View::POS_HEAD);
+            }
+        });
+
+        Craft::$app->getView()->registerAssetBundle(StructurePlusAsset::class);
 
         if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_ACCESS_PLUGIN)) {
             if (Craft::$app->getUser()->checkPermission(PermissionsEvent::PERMISSION_SHOW_BUTTONS)) {
