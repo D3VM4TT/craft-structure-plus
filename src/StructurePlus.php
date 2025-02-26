@@ -5,18 +5,15 @@ namespace boost\structureplus;
 use boost\structureplus\assets\StructurePlusAsset;
 use boost\structureplus\behaviors\StructurePlusBehavior;
 use boost\structureplus\events\DefineBehaviorsEvent;
+use boost\structureplus\events\DefineAttributeHtml;
 use boost\structureplus\events\DefineSidebarHtmlEvent;
 use boost\structureplus\events\PermissionsEvent;
-use boost\structureplus\helpers\PluginTemplate;
 use boost\structureplus\services\StructurePlusEntriesService;
 use Craft;
 use craft\base\Element;
 use craft\base\Plugin;
-use craft\db\Query;
 use craft\elements\Entry;
-use craft\events\RegisterElementSourcesEvent;
 use craft\events\RegisterElementTableAttributesEvent;
-use craft\events\DefineAttributeHtmlEvent;
 use craft\models\Section;
 use craft\web\View;
 use yii\base\Event;
@@ -31,9 +28,8 @@ use yii\base\Event;
  */
 class StructurePlus extends Plugin
 {
-    
-    /* TODO: Add hidden class to sources via the code  */
-    /* TODO: Create a settins page where the user can show/hide certain sources  */
+
+    /* TODO: Create a settings page where the user can show/hide certain sources  */
 
     public const HANDLE = 'structure-plus';
 
@@ -68,30 +64,12 @@ class StructurePlus extends Plugin
 
     private function attachEventHandlers(): void
     {
-        /** @var StructurePlusEntriesService $structurePlusEntries */
-        $structurePlusEntries = self::getInstance()->structurePlusEntry;
 
-        /* TODO: BUG!!! When a channel is related to a entry, it is hidden as expected,
-                but when it is no longer related, it is still hidden  */
-
-            // Fetch a unique list of channel IDs linked via sp_channelId
-            $hiddenChannelIds = $structurePlusEntries->getAllRelatedChannels();
-
-            // Fetch section handles for the channels
-            $hiddenSectionHandles = [];
-            foreach ($hiddenChannelIds as $channelId) {
-                if ($channelId) {
-                    $section = Craft::$app->entries->getSectionById($channelId);
-                    if ($section) {
-                        $hiddenSectionHandles[] = $section->handle;
-                    }
-                }
-            }
 
         // Pass hidden section handles to JavaScript
-        Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (Event $event) use ($hiddenSectionHandles) {
+        Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (Event $event) {
             if (Craft::$app->getRequest()->isCpRequest) {
-                $jsonHiddenSections = json_encode($hiddenSectionHandles);
+                $jsonHiddenSections = $this->getHiddenSectionHandlesForJavascript();
                 Craft::$app->getView()->registerJs("window.hiddenSections = $jsonHiddenSections;", View::POS_HEAD);
             }
         });
@@ -109,55 +87,8 @@ class StructurePlus extends Plugin
                         $event->handled = true;
                     });
 
-                //  *** ADD BUTTONS ***
-                Event::on(
-                    Entry::class,
-                    Element::EVENT_DEFINE_ATTRIBUTE_HTML,
-                    function (DefineAttributeHtmlEvent $e) {
-                        if ($e->attribute !== StructurePlusBehavior::PROPERTY_NAME) {
-                            return;
-                        }
 
-                        /** @var Entry $entry */
-                        $entry = $e->sender;
-
-                        // Fetch the channelId related to this entry
-                        $channelId = (new \craft\db\Query())
-                            ->select([self::DB_FIELD_CHANNEL_ID])
-                            ->from('{{%entries}}')
-                            ->where(['id' => $entry->id])
-                            ->scalar();
-
-                        $relatedChannel = null;
-
-                        if ($channelId !== null) {
-                            $relatedChannel = Craft::$app->entries->getSectionById($channelId);
-                        }
-
-                        $e->html = '';
-
-                        if ($relatedChannel instanceof Section) {
-                            $sourceDisabled = false;
-                            $sources = Craft::$app->elementSources->getSources(Entry::class, '', true);
-
-                            foreach ($sources as $source) {
-                                // Check if 'data' exists and is an array
-                                if (isset($source['data']) && is_array($source['data'])) {
-                                    // Check if 'handle' exists in 'data'
-                                    if (isset($source['data']['handle']) && $source['data']['handle'] === $relatedChannel->handle) {
-                                        $sourceDisabled = $source['disabled'];
-                                        break; // Exit loop as we've found the desired source
-                                    }
-                                }
-                            }
-
-                            $e->html = PluginTemplate::renderPluginTemplate('_sidebars/admin-buttons.twig', [
-                                "relatedChannel" => $relatedChannel->handle,
-                                "sourceDisabled" => $sourceDisabled,
-                            ]);
-                        }
-                    }
-                );
+               DefineAttributeHtml::register();
 
 
                 DefineBehaviorsEvent::register();
@@ -205,6 +136,27 @@ class StructurePlus extends Plugin
         }
 
         PermissionsEvent::register();
+    }
+
+    private function getHiddenSectionHandlesForJavascript()
+    {
+        /** @var StructurePlusEntriesService $structurePlusEntries */
+        $structurePlusEntries = self::getInstance()->structurePlusEntry;
+
+        // Fetch a unique list of channel IDs linked via sp_channelId
+        $hiddenChannelIds = $structurePlusEntries->getAllRelatedChannels();
+        // Fetch section handles for the channels
+        $hiddenSectionHandles = [];
+        foreach ($hiddenChannelIds as $channelId) {
+            if ($channelId) {
+                $section = Craft::$app->entries->getSectionById($channelId);
+                if ($section) {
+                    $hiddenSectionHandles[] = $section->handle;
+                }
+            }
+        }
+
+        return json_encode($hiddenSectionHandles);
     }
 
 }
