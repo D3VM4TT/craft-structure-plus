@@ -125,10 +125,9 @@ class StructurePlus extends Plugin
 
                         $channelId = Craft::$app->request->getBodyParam('channelId');
 
-                        // TODO looks like a new entry is created each time a entry is saved,
-                        // investigate how they are referencing entries in the Pages admin table
+                        // TODO: Update all entry id references to use the cannonical id
                         if ($channelId !== null) {
-                            $this->structurePlusEntriesService->updateEntrySPChannelId($entry->getId(), $channelId);
+                            $this->structurePlusEntriesService->updateEntrySPChannelId($entry->getCanonicalId(), $channelId);
                         }
                     }
                 );
