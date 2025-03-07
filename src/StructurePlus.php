@@ -74,7 +74,7 @@ class StructurePlus extends Plugin
         // Pass hidden section handles to JavaScript
         Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (Event $event) {
             if (Craft::$app->getRequest()->isCpRequest) {
-                $jsonHiddenSections = $this->getHiddenSectionHandlesForJavascript();
+                $jsonHiddenSections = $this->structurePlusEntriesService->getHiddenSectionHandlesForJavascript();
                 Craft::$app->getView()->registerJs("window.hiddenSections = $jsonHiddenSections;", View::POS_HEAD);
             }
         });
@@ -122,10 +122,7 @@ class StructurePlus extends Plugin
                         }
 
                         // Only target Structure entries
-
                         $channelId = Craft::$app->request->getBodyParam('channelId');
-
-                        // TODO: Update all entry id references to use the cannonical id
                         if ($channelId !== null) {
                             $this->structurePlusEntriesService->updateEntrySPChannelId($entry->getCanonicalId(), $channelId);
                         }
@@ -135,24 +132,6 @@ class StructurePlus extends Plugin
         }
 
         PermissionsEvent::register();
-    }
-
-    private function getHiddenSectionHandlesForJavascript()
-    {
-        // Fetch a unique list of channel IDs linked via sp_channelId
-        $hiddenChannelIds = $this->structurePlusEntriesService->getAllRelatedChannels();
-        // Fetch section handles for the channels
-        $hiddenSectionHandles = [];
-        foreach ($hiddenChannelIds as $channelId) {
-            if ($channelId) {
-                $section = Craft::$app->entries->getSectionById($channelId);
-                if ($section) {
-                    $hiddenSectionHandles[] = $section->handle;
-                }
-            }
-        }
-
-        return json_encode($hiddenSectionHandles);
     }
 
 }

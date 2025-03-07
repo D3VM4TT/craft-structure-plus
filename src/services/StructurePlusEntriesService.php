@@ -33,5 +33,23 @@ class StructurePlusEntriesService
             ->execute();
     }
 
+    public function getHiddenSectionHandlesForJavascript(): ?string
+    {
+        // Fetch a unique list of channel IDs linked via sp_channelId
+        $hiddenChannelIds = $this->getAllRelatedChannels();
+        // Fetch section handles for the channels
+        $hiddenSectionHandles = [];
+        foreach ($hiddenChannelIds as $channelId) {
+            if ($channelId) {
+                $section = Craft::$app->entries->getSectionById($channelId);
+                if ($section) {
+                    $hiddenSectionHandles[] = $section->handle;
+                }
+            }
+        }
+
+        return json_encode($hiddenSectionHandles);
+    }
+
 
 }
