@@ -12,6 +12,9 @@ use craft\events\DefineAttributeHtmlEvent;
 use craft\models\Section;
 use yii\base\Event;
 
+/**
+ * Add the "View all" & "Add new +" buttons
+ */
 class DefineAttributeHtml
 {
     public static function register(): void
@@ -53,7 +56,7 @@ class DefineAttributeHtml
                             if (isset($source['data']) && is_array($source['data'])) {
                                 // Check if 'handle' exists in 'data'
                                 if (isset($source['data']['handle']) && $source['data']['handle'] === $relatedChannel->handle) {
-                                    $sourceDisabled = $source['disabled'] ?? null;
+                                    $sourceDisabled = $source['disabled'] ?? false;
                                     break; // Exit loop as we've found the desired source
                                 }
                             }

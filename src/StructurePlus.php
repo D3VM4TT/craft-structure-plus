@@ -37,6 +37,8 @@ class StructurePlus extends Plugin
 
     public string $schemaVersion = '1.0.0';
 
+    private StructurePlusEntriesService $structurePlusEntriesService;
+
     public static function config(): array
     {
         return [
@@ -50,6 +52,7 @@ class StructurePlus extends Plugin
     {
         parent::init();
 
+
         // Any code that creates an element query or loads Twig should be deferred until
         // after Craft is fully initialized, to avoid conflicts with other plugins/modules
         Craft::$app->onInit(function () {
@@ -60,6 +63,8 @@ class StructurePlus extends Plugin
         $this->setComponents([
             'structurePlusEntry' => StructurePlusEntriesService::class,
         ]);
+
+        $this->structurePlusEntriesService = self::getInstance()->structurePlusEntry;
     }
 
     private function attachEventHandlers(): void
@@ -87,9 +92,8 @@ class StructurePlus extends Plugin
                         $event->handled = true;
                     });
 
-
-               DefineAttributeHtml::register();
-
+                // *** Add the "View all" & "Add new +" buttons ***
+                DefineAttributeHtml::register();
 
                 DefineBehaviorsEvent::register();
             }
@@ -121,14 +125,10 @@ class StructurePlus extends Plugin
 
                         $channelId = Craft::$app->request->getBodyParam('channelId');
 
+                        // TODO looks like a new entry is created each time a entry is saved,
+                        // investigate how they are referencing entries in the Pages admin table
                         if ($channelId !== null) {
-                            Craft::$app->db->createCommand()
-                                ->update(
-                                    '{{%entries}}',
-                                    [self::DB_FIELD_CHANNEL_ID => $channelId],
-                                    ['id' => $entry->id]
-                                )
-                                ->execute();
+                            $this->structurePlusEntriesService->updateEntrySPChannelId($entry->getId(), $channelId);
                         }
                     }
                 );
@@ -140,11 +140,8 @@ class StructurePlus extends Plugin
 
     private function getHiddenSectionHandlesForJavascript()
     {
-        /** @var StructurePlusEntriesService $structurePlusEntries */
-        $structurePlusEntries = self::getInstance()->structurePlusEntry;
-
         // Fetch a unique list of channel IDs linked via sp_channelId
-        $hiddenChannelIds = $structurePlusEntries->getAllRelatedChannels();
+        $hiddenChannelIds = $this->structurePlusEntriesService->getAllRelatedChannels();
         // Fetch section handles for the channels
         $hiddenSectionHandles = [];
         foreach ($hiddenChannelIds as $channelId) {
