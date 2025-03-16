@@ -16,6 +16,7 @@ class StructurePlusEntriesService
             ->select(['sp_channelId'])
             ->distinct()
             ->from('{{%entries}}')
+            ->where(['deletedWithSection' => false, 'deletedWithEntryType' => false])
             ->column();
     }
 
